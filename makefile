@@ -12,7 +12,7 @@ modules:
 package: rminst modules geninst
 	@python3 -u scripts/generate_package.py
 clean: rminst
-	@if [ -e "package.jpk" ]; then rm package.jpk; fi
+	@if [ -e "cardputer-config.jpk" ]; then rm cardputer-config.jpk; fi
 	@if find "files" -maxdepth 1 -name '*.mpy' | grep -q .; then rm files/*.mpy; fi
 geninst:
 	@python3 -u scripts/gen_install_scripts.py
