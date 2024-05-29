@@ -1,0 +1,6 @@
+*.jpk
+mpy-cross*
+*.mpy
+files/installer.py
+files/strap.py
+files/uninstaller.py

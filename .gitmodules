@@ -1,0 +1,6 @@
+[submodule "submodules/jz"]
+	path = submodules/jz
+	url = https://github.com/beryllium-org/jz
+[submodule "submodules/CircuitMPY"]
+	path = submodules/CircuitMPY
+	url = https://github.com/beryllium-org/CircuitMPY
