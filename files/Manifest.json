@@ -1,7 +1,7 @@
 {
     "JPKG_minimum_version": 2,
-    "package_name": "package",
-    "version": [0, 0, 0],
+    "package_name": "cardputer-config",
+    "version": [0, 0, 1],
     "dependencies": [],
     "conflicts": [],
     "install": "installer.py",

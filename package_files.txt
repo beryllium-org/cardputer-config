@@ -1,0 +1,3 @@
+file 10-builtin-display-init-cardputer.py /boot/boot.d/10-builtin-display-init-cardputer.py
+mpy src/cardputerVT.py cardputerVT.mpy
+file cardputerVT.mpy /lib/cardputerVT.mpy
