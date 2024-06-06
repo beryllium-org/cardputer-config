@@ -1,11 +1,13 @@
 from board import DISPLAY as _display
+from board import BAT_ADC as _bat_adc
 from sys import stdin as _stdin
 from sys import stdout as _stdout
 from supervisor import runtime as _runtime
-import displayio
-import terminalio
+import displayio as _displayio
+import terminalio as _terminalio
+import analogio as _analogio
 
-_palette = displayio.Palette(2)
+_palette = _displayio.Palette(2)
 _palette[1] = 0xFFFFFF
 
 cl_str = b"\x1b[2J\x1b[3J\x1b[H"
@@ -13,13 +15,13 @@ lm_str = (
     cl_str
     + b" Console locked, press ENTER to unlock\n\r"
     + b"-" * 39
-    + "\n\r"
-    + "  ,-----------,     System active\n\r"
-    + "  | 4    9.01 |     -------------\n\r"
-    + "  |           |\n\r"
-    + "  |           |     Battery: ???%\n\r"
-    + "  | BERYLLIUM |\n\r"
-    + "  '-----------'\n\r"
+    + b"\n\r"
+    + b"  ,-----------,     System active\n\r"
+    + b"  | 4    9.01 |     -------------\n\r"
+    + b"  |           |\n\r"
+    + b"  |           |     Battery: ???%\n\r"
+    + b"  | BERYLLIUM |\n\r"
+    + b"  '-----------'\n\r"
 )
 
 
@@ -32,15 +34,15 @@ class cardputerVT:
         self._lines = None
         self._chars = None
         self._conn = False
-        self.bat_sense = None
+        self._bat = _analogio.AnalogIn(_bat_adc)
         self._bat_vstate = -1
         self._in_buf = str()
-        self._r = displayio.Group()
-        font_width, font_height = terminalio.FONT.get_bounding_box()
+        self._r = _displayio.Group()
+        font_width, font_height = _terminalio.FONT.get_bounding_box()
         self._lines = int(_display.height / font_height) - 1
         self._chars = int(_display.width / font_width) - 1
-        tg = displayio.TileGrid(
-            terminalio.FONT.bitmap,
+        tg = _displayio.TileGrid(
+            _terminalio.FONT.bitmap,
             pixel_shader=_palette,
             width=self._chars,
             height=self._lines,
@@ -49,7 +51,7 @@ class cardputerVT:
             x=(_display.width - (self._chars * font_width)) // 2,
             y=(_display.height - (self._lines * font_height)) // 2,
         )
-        self._terminal = terminalio.Terminal(tg, terminalio.FONT)
+        self._terminal = _terminalio.Terminal(tg, _terminalio.FONT)
         self._r.append(tg)
         _display.root_group = self._r
         self._terminal.write(lm_str)
@@ -92,25 +94,32 @@ class cardputerVT:
             self._in_buf += _stdin.read()
 
     @property
+    def battery(self) -> int:
+        val = int(((sum(self._bat.value for _ in range(30))/30)/65535) * 157.142857143)
+        # Ez precomputed maf
+        # Don't optimize any further for precision.
+        return max(0, min(100, val))
+
+    @property
     def connected(self) -> bool:
         if not self._conn and self.in_waiting and "\n" in self._in_buf:
             self.enable()
         if self._in_buf:
             self.reset_input_buffer()
-        if self.bat_sense is not None:
-            if not self._conn:
-                curr = self.bat_sense.percentage
-                if curr != self._bat_vstate:
-                    self._bat_vstate = curr
-                    if curr < 10:
-                        curr = str(2 * " " + curr)
-                    elif curr < 100:
-                        curr = str(" " + curr)
-                    else:
-                        curr = str(curr)
-                    self._terminal.write(lm_str.replace("???", curr))
-            else:
-                self._bat_vstate = -1
+        if not self._conn:
+            curr = self.battery
+            if curr != self._bat_vstate:
+                self._bat_vstate = curr
+                if curr < 10:
+                    curr = 2 * " " + str(curr)
+                elif curr < 100:
+                    curr = " " + str(curr)
+                else:
+                    curr = str(curr)
+                curr = bytes(curr, "UTF-8")
+                self._terminal.write(lm_str.replace(b"???", curr))
+        else:
+            self._bat_vstate = -1
         return self._conn
 
     def disconnect(self) -> None:
@@ -150,10 +159,7 @@ class cardputerVT:
 
     def disable(self) -> None:
         self._conn = False
-        if self.bat_sense is not None:
-            self.connected
-        else:
-            self._terminal.write(lm_str)
+        self.connected
 
     def write(self, data=bytes) -> int:
         if not self._conn:
