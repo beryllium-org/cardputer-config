@@ -1,11 +1,9 @@
 from board import DISPLAY as _display
-from board import BAT_ADC as _bat_adc
 from sys import stdin as _stdin
 from sys import stdout as _stdout
 from supervisor import runtime as _runtime
 import displayio as _displayio
 import terminalio as _terminalio
-import analogio as _analogio
 
 _palette = _displayio.Palette(2)
 _palette[1] = 0xFFFFFF
@@ -34,7 +32,7 @@ class cardputerVT:
         self._lines = None
         self._chars = None
         self._conn = False
-        self._bat = _analogio.AnalogIn(_bat_adc)
+        self._bat = None
         self._bat_vstate = -1
         self._in_buf = str()
         self._r = _displayio.Group()
@@ -95,10 +93,15 @@ class cardputerVT:
 
     @property
     def battery(self) -> int:
-        val = int(((sum(self._bat.value for _ in range(30))/30)/65535) * 157.142857143)
-        # Ez precomputed maf
-        # Don't optimize any further for precision.
-        return max(0, min(100, val))
+        return self._bat.percentage if self._bat is not None else -1
+
+    @battery.setter
+    def battery(self, batobj) -> None:
+        try:
+            batobj.voltage
+            self._bat = batobj
+        except:
+            print("Invalid battery object")
 
     @property
     def connected(self) -> bool:
@@ -108,7 +111,7 @@ class cardputerVT:
             self.reset_input_buffer()
         if not self._conn:
             curr = self.battery
-            if curr != self._bat_vstate:
+            if curr != -1 and curr != self._bat_vstate:
                 self._bat_vstate = curr
                 if curr < 10:
                     curr = 2 * " " + str(curr)
@@ -124,9 +127,6 @@ class cardputerVT:
 
     def disconnect(self) -> None:
         self.disable()
-
-    def reset_input_buffer(self):
-        self._in_buf = str()
 
     def reset_input_buffer(self) -> None:
         self._in_buf = str()
@@ -159,7 +159,10 @@ class cardputerVT:
 
     def disable(self) -> None:
         self._conn = False
-        self.connected
+        if not self._bat:
+            self._terminal.write(lm_str)
+        else:
+            self.connected
 
     def write(self, data=bytes) -> int:
         if not self._conn:
@@ -168,5 +171,8 @@ class cardputerVT:
         return res
 
     def deinit(self) -> None:
+        self._terminal.write(
+            cl_str + b" " * 9 + b"Console deinitialized\n\r" + b"-" * 39
+        )
         del self._in_buf
         del self

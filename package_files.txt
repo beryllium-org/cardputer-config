@@ -1,3 +1,4 @@
 file 10-builtin-display-init-cardputer.py /boot/boot.d/10-builtin-display-init-cardputer.py
+file 09-cardputer-battery.lja /boot/boot.d/09-cardputer-battery.lja
 mpy src/cardputerVT.py cardputerVT.mpy
 file cardputerVT.mpy /lib/drivers/cardputerVT.mpy

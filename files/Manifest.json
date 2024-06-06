@@ -1,8 +1,8 @@
 {
     "JPKG_minimum_version": 2,
     "package_name": "cardputer-config",
-    "version": [0, 0, 1],
-    "dependencies": [],
+    "version": [1, 0, 0],
+    "dependencies": ["adctools"],
     "conflicts": [],
     "install": "installer.py",
     "remove": "uninstaller.py",
