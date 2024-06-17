@@ -32,6 +32,7 @@ class cardputerVT:
         self._lines = None
         self._chars = None
         self._conn = False
+        self._fpolls = 0
         self._bat = None
         self._bat_vstate = -1
         self._in_buf = str()
@@ -105,22 +106,35 @@ class cardputerVT:
 
     @property
     def connected(self) -> bool:
-        if not self._conn and self.in_waiting and "\n" in self._in_buf:
+        if self._conn:
+            return True
+        if self.in_waiting and "\n" in self._in_buf:
+            _display.brightness = 1.0
+            self._fpolls = 0
             self.enable()
         if self._in_buf:
             self.reset_input_buffer()
+            _display.brightness = 1.0
+            self._fpolls = 0
         if not self._conn:
-            curr = self.battery
-            if curr != -1 and curr != self._bat_vstate:
-                self._bat_vstate = curr
-                if curr < 10:
-                    curr = 2 * " " + str(curr)
-                elif curr < 100:
-                    curr = " " + str(curr)
-                else:
-                    curr = str(curr)
-                curr = bytes(curr, "UTF-8")
-                self._terminal.write(lm_str.replace(b"???", curr))
+            if self._fpolls < 15:
+                curr = self.battery
+                if curr != -1 and curr != self._bat_vstate:
+                    self._bat_vstate = curr
+                    if curr < 10:
+                        curr = 2 * " " + str(curr)
+                    elif curr < 100:
+                        curr = " " + str(curr)
+                    else:
+                        curr = str(curr)
+                    curr = bytes(curr, "UTF-8")
+                    self._terminal.write(lm_str.replace(b"???", curr))
+                self._fpolls += 1
+            elif _display.brightness:
+                try:
+                    _display.brightness -= 0.1
+                except:
+                    _display.brightness = 0
         else:
             self._bat_vstate = -1
         return self._conn
@@ -171,6 +185,7 @@ class cardputerVT:
         return res
 
     def deinit(self) -> None:
+        _display.brightness = 1.0
         self._terminal.write(
             cl_str + b" " * 9 + b"Console deinitialized\n\r" + b"-" * 39
         )
