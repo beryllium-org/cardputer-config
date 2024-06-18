@@ -53,7 +53,7 @@ class cardputerVT:
         self._terminal = _terminalio.Terminal(tg, _terminalio.FONT)
         self._r.append(tg)
         _display.root_group = self._r
-        self._terminal.write(lm_str)
+        self._terminal.write(lm_str.replace(b"     Battery: ???%", b""))
 
     @property
     def enabled(self):
@@ -98,6 +98,9 @@ class cardputerVT:
 
     @battery.setter
     def battery(self, batobj) -> None:
+        if batobj is None:
+            self._bat = None
+            return
         try:
             batobj.voltage
             self._bat = batobj
@@ -174,7 +177,7 @@ class cardputerVT:
     def disable(self) -> None:
         self._conn = False
         if not self._bat:
-            self._terminal.write(lm_str)
+            self._terminal.write(lm_str.replace(b"     Battery: ???%", b""))
         else:
             self.connected
 
